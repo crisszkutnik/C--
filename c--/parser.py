@@ -4,13 +4,14 @@ from helpers import tcolours
 
 class CalcParser(Parser):
     tokens = CalcLexer.tokens
+    start = 'declaration'
    
     # Error handler
     def error(self, err): 
         if err:
             print(tcolours.red + "ERR" + tcolours.reset + " - " + "Line {}: ".format(err.lineno) + err.value)
         else:
-            print("Error at EOF")
+            print(err)
 
     # Rules
 
@@ -65,11 +66,38 @@ class CalcParser(Parser):
     def primary_expression(self, p):
         return p
 
+    #
     # Declarations
+    #
+
+    @_('declaration_specifiers opt_declaration')
+    def declaration(self, p):
+        return p
+
+    @_('PLEASE data_type ID')
+    def declaration_specifiers(self, p):
+        return p
+
+    @_('INT',
+       'FLOAT_T',
+       'STRING_T'
+       )
+    def data_type(self, p):
+        return p
+
+    @_('";"',
+       'initializer ";"'
+       )
+    def opt_declaration(self, p): 
+        return p
+
+    @_('"=" expression')
+    def initializer(self, p):
+        return p
 
 if __name__ == "__main__":
     lexer = CalcLexer()
     parser = CalcParser()
-    text = "(a + 5) * 2"
+    text = "please int a;"
 
     parser.parse(lexer.tokenize(text))

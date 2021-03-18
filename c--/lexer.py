@@ -25,7 +25,7 @@ class CalcLexer(Lexer):
     }
 
     literals = {
-        '+', '-', '/', '*', '=', '%', '>', '<', '(', ')'
+        '+', '-', '/', '*', '=', '%', '>', '<', '(', ')', ';'
     }
 
     # Set ignored tokens
@@ -49,6 +49,7 @@ class CalcLexer(Lexer):
     ID['if'] = IF
     ID['else'] = ELSE
     ID['while'] = WHILE
+    ID['please'] = PLEASE
 
     #Data types
     ID['int'] = INT
