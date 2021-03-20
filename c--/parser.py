@@ -1,6 +1,7 @@
 from lexer import CalcLexer
 from sly import Parser
 from helpers import tcolours
+from symbol_table import symbol_table, Variable
 
 class CalcParser(Parser):
     tokens = CalcLexer.tokens
@@ -72,18 +73,20 @@ class CalcParser(Parser):
 
     @_('declaration_specifiers opt_declaration')
     def declaration(self, p):
+        data_type, identifier = p.declaration_specifiers
         return p
 
     @_('PLEASE data_type ID')
     def declaration_specifiers(self, p):
-        return p
+        return p[1], p[2]
 
     @_('INT',
        'FLOAT_T',
-       'STRING_T'
+       'STRING_T',
+       'VOID'
        )
     def data_type(self, p):
-        return p
+        return p[0]
 
     @_('";"',
        'initializer ";"'

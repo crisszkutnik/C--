@@ -21,7 +21,8 @@ class CalcLexer(Lexer):
         #Data types
         INT,
         FLOAT_T,
-        STRING_T
+        STRING_T,
+        VOID
     }
 
     literals = {
@@ -55,6 +56,7 @@ class CalcLexer(Lexer):
     ID['int'] = INT
     ID['float'] = FLOAT_T
     ID['string'] = STRING_T
+    ID['void'] = VOID
 
     # Rule for newlines
     @_(r'\n+')
