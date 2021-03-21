@@ -1,6 +1,7 @@
 from lexer import CalcLexer
 from sly import Parser
 from helpers import tcolours
+from symbol_table import ctx_stack, variable
 
 def is_constant(arg):
     arg_t = type(arg)
@@ -32,11 +33,20 @@ class ExpressionParser(Parser):
         return p
 
     @_('eq_expression',
-       'eq_expression "=" assing_expression'
+       'ID "=" eq_expression'
        )
     def assing_expression(self, p):
-        print(p[0])
-        return p
+        if(len(p) == 1):
+            return p[0]
+        elif ctx_stack.variable_is_declared(p[0]):
+            if is_constant(p[2]) or p[2][0] == '"':
+                ctx_stack.variable_modify_value(p[0], p[2])
+            elif ctx_stack.variable_is_declared(p[2]): # Assign to another variable
+                new_val = ctx_stack.variable_get_value(p[2])
+                ctx_stack.variable_modify_value(new_val)
+            else:
+                pass
+                # Raise error. Variable on p[2] is not declared
 
     @_('rel_expression',
        'rel_expression EQUALS eq_expression'
@@ -103,7 +113,6 @@ class ExpressionParser(Parser):
             else:
                 return expr_str(p)
 
-
     @_('ID',
        'FLOAT',
        'INTEGER',
@@ -111,17 +120,23 @@ class ExpressionParser(Parser):
        '"(" expression ")"'
        )
     def primary_expression(self, p):
-        try:
-            return int(p[0])
-        except:
+        if p[0] == "(":
+            return p[1]
+        else:
             try:
-                return float(p[0])
+                return int(p[0])
             except:
-                return p[0]
+                try:
+                    return float(p[0])
+                except:
+                    return p[0]
 
 if __name__ == "__main__":
     lexer = CalcLexer()
     parser = ExpressionParser()
-    text = "5 * 2 + 10 / 2"
+    new_var = variable("abc", type(50), 50)
+    text = 'abc = "aaa"'
+    ctx_stack.variable_add_to_context(new_var)
 
     parser.parse(lexer.tokenize(text))
+    print(ctx_stack.variable_get_value("abc"))
