@@ -9,3 +9,17 @@ class tcolours:
     blue = "\033[34m"
     magenta = "\033[35m"
     cyan = "\033[36m"
+
+#
+# Expression parser helpers
+#
+
+def is_constant(arg):
+    arg_t = type(arg)
+    return (arg_t is int or arg_t is float)
+
+def expr_str(p):
+    return "{}{}{}".format(p[0], p[1], p[2])
+
+def constant_operands(p):
+    return (is_constant(p[0]) and is_constant(p[2]))

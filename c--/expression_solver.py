@@ -1,17 +1,7 @@
 from lexer import CalcLexer
 from sly import Parser
-from helpers import tcolours
+from helpers import tcolours, constant_operands, expr_str, is_constant
 from symbol_table import ctx_stack, variable
-
-def is_constant(arg):
-    arg_t = type(arg)
-    return (arg_t is int or arg_t is float)
-
-def expr_str(p):
-    return "{}{}{}".format(p[0], p[1], p[2])
-
-def constant_operands(p):
-    return (is_constant(p[0]) and is_constant(p[2]))
 
 class ExpressionParser(Parser):
     tokens = CalcLexer.tokens
@@ -117,7 +107,7 @@ class ExpressionParser(Parser):
        'FLOAT',
        'INTEGER',
        'STRING',
-       '"(" expression ")"'
+       '"(" eq_expression ")"'
        )
     def primary_expression(self, p):
         if p[0] == "(":
@@ -134,9 +124,6 @@ class ExpressionParser(Parser):
 if __name__ == "__main__":
     lexer = CalcLexer()
     parser = ExpressionParser()
-    new_var = variable("abc", type(50), 50)
-    text = 'abc = "aaa"'
-    ctx_stack.variable_add_to_context(new_var)
+    text = '32 * (1+2)'
 
-    parser.parse(lexer.tokenize(text))
-    print(ctx_stack.variable_get_value("abc"))
+    print(parser.parse(lexer.tokenize(text)))
