@@ -1,6 +1,8 @@
 The nonterminals `expression` and `assign_expression` are unreachable in this version of the grammar
 
 ```
+// Expressions
+
 expression	            : assign_expression
 
 assign_expression       : eq_expression
@@ -28,6 +30,8 @@ primary_expression      : ID
                         | STRING
 
 
+// Declarations
+
 declaration             : declaration_specifiers opt_declaration
 
 declaration_specifiers  : PLEASE data_type ID
@@ -40,4 +44,12 @@ opt_declaration	        : ';'
                         | initializer ';'
 
 initializer             : '=' eq_expression
+
+// Code structure
+
+program                 : declaration code_block
+                        | expression ';' code_block
+                        
+code_block              : program
+                        | empty
 ```

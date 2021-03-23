@@ -1,11 +1,20 @@
 from symbol_table import ctx_stack, Variable
 from errors import semantic_error
-from helpers import is_constant
+from expression_solver import ExpressionParser
+from lexer import CalcLexer
+
+expression_parser = ExpressionParser()
+expression_lexer = CalcLexer()
 
 
 #
 # Expressions
 #
+
+# Parse expr again
+def parse_expr(expr):
+    return expression_parser.parse(expression_lexer.tokenize(expr))
+
 
 class AssignExpressionNode:
     def __init__(self, operator, expr, parsing_completed):
@@ -18,9 +27,11 @@ class AssignExpressionNode:
 
         if var:
             if self.parsing_completed:
-                var.value = self.expr
+                var.modify_value(self.expr)
             else:
-                # Parse the expression again and assign the value
+                new_val = parse_expr(self.expr)
+                if new_val:
+                    var.modify_value(new_val)
                 pass
         else:
             pass
@@ -32,19 +43,17 @@ class AssignExpressionNode:
 #
 
 class DeclarationNode:
-    def __init__(self, identifier, expr, t, parsing_completed):
+    def __init__(self, identifier, expr, t):
         self.identifier = identifier
         self.expr = expr
         self.t = t
-        self.parsing_completed = parsing_completed
+        self.var = Variable(self.identifier, self.t)
+
+        if ctx_stack.variable_is_declared(self.identifier):
+            semantic_error("Variable {} is already declared".format(identifier))
+        else:
+            ctx_stack.variable_add_to_context(self.var)
 
     def run_instruction(self):
-        if ctx_stack.variable_is_declared(self.identifier):
-            # Raise error. Variable already declared
-            pass
-        else:
-            if not self.parsing_completed:
-                pass
-                # Parse expr again
-
-            ctx_stack.variable_add_to_context(Variable(self.identifier, self.t, self.parsing_completed, self.expr))
+        # ctx_stack.variable_add_to_context(Variable(self.identifier, self.t, parse_expr(self.expr)))
+        self.var.value = parse_expr(self.expr)

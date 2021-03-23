@@ -2,11 +2,16 @@ from errors import semantic_error
 
 
 class Variable:
-    def __init__(self, name, t, is_parsed, value=None):
+    def __init__(self, name, t, value=None):
         self.name = name
         self.type = t
-        self.is_parsed = is_parsed
         self.value = value
+
+    def modify_value(self, new_value):
+        if self.type == type(new_value):
+            self.value = new_value
+        else:
+            semantic_error("types do not match")
 
 
 class InstructionContext:
@@ -65,7 +70,7 @@ class ContextStack:
 
     def variable_get_value(self, name: str):
         var = self.search_variable(name)
-        if var:
+        if not (var is None):
             return var.value
         else:
             semantic_error("variable {} is not declared".format(name))
@@ -77,12 +82,8 @@ class ContextStack:
     def variable_modify_value(self, name: str, new_value):
         var = self.search_variable(name)
 
-        if var:
-            if var.type == type(new_value):
-                var.value = new_value
-            else:
-                semantic_error("types do not match")
-                # Raise error. Types do not match
+        if not (var is None):
+            var.modify_value(new_value)
         else:
             semantic_error("variable {} is not declared".format(name))
             # Raise error. Variable not declared
@@ -105,5 +106,6 @@ class ContextStack:
     def run_context(self):
         for ctx in self.stack:
             ctx.run()
+
 
 ctx_stack = ContextStack()

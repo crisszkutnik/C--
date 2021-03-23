@@ -1,13 +1,13 @@
 from lexer import CalcLexer
 from sly import Parser
-from helpers import tcolours, constant_operands, expr_str, is_constant
-from symbol_table import ctx_stack, Variable
-from errors import semantic_error
+from helpers import tcolours, constant_operands, expr_str
+from symbol_table import ctx_stack
+from errors import runtime_error
 
 
 class ExpressionParser(Parser):
     tokens = CalcLexer.tokens
-    start = 'expression'
+    start = 'eq_expression'
 
     # Error handler
     def error(self, err): 
@@ -19,26 +19,6 @@ class ExpressionParser(Parser):
     #
     # Expressions
     #
-
-    @_('assing_expression')
-    def expression(self, p):
-        return p
-
-    @_('eq_expression',
-       'ID "=" eq_expression'
-       )
-    def assing_expression(self, p):
-        if len(p) == 1:
-            return p[0]
-        elif ctx_stack.variable_is_declared(p[0]):
-            if is_constant(p[2]) or p[2][0] == '"':
-                ctx_stack.variable_modify_value(p[0], p[2])
-            elif ctx_stack.variable_is_declared(p[2]):  # Assign to another variable
-                new_val = ctx_stack.variable_get_value(p[2])
-                ctx_stack.variable_modify_value(new_val)
-            else:
-                semantic_error("Variable {} is not declared".format(p[2]))
-                # Raise error. Variable on p[2] is not declared
 
     @_('rel_expression',
        'rel_expression EQUALS eq_expression'
@@ -119,16 +99,17 @@ class ExpressionParser(Parser):
                 try:
                     return float(p[0])
                 except:
-                    val = ctx_stack.variable_get_value(p[0])
+                    var = ctx_stack.search_variable(p[0])
 
-                    if val:
-                        return val
+                    if var:
+                        if var.value:
+                            return var.value
+                        else:
+                            runtime_error("Can not assign to variable {} because it does not have a value".format(p[0]))
+                            # Runtime error. Variable does not have a value
                     else:
-                        return p[0]
-
-
-
-
+                        pass
+                        # Runtime error. Variable not declared
 
 if __name__ == "__main__":
     lexer = CalcLexer()
