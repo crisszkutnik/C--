@@ -1,14 +1,26 @@
 from lexer import CalcLexer
 from sly import Parser
-from helpers import tcolours, is_constant, constant_operands, expr_str
-from symbol_table import ctx_stack, variable
+from helpers import tcolours, is_constant, constant_operands, expr_str, is_identifier
+from symbol_table import ctx_stack, Variable
+from errors import semantic_error
+from nodes import AssignExpressionNode, DeclarationNode
+
+
+def expression_is_parsed(expr: str):
+    if is_identifier(expr):
+        return False
+    else:
+        for e in CalcLexer.operators:
+            if e in expr:
+                return False
+
 
 class CalcParser(Parser):
     tokens = CalcLexer.tokens
     start = 'declaration'
-   
+
     # Error handler
-    def error(self, err): 
+    def error(self, err):
         if err:
             print(err)
             print(tcolours.red + "ERR" + tcolours.reset + " - " + "Line {}: ".format(err.lineno) + err.value)
@@ -28,23 +40,17 @@ class CalcParser(Parser):
        'ID "=" eq_expression'
        )
     def assing_expression(self, p):
-        if(len(p) == 1):
+        if len(p) == 1:
             return p[0]
-        elif ctx_stack.variable_is_declared(p[0]):
-            if is_constant(p[2]) or p[2][0] == '"':
-                ctx_stack.variable_modify_value(p[0], p[2])
-            elif ctx_stack.variable_is_declared(p[2]): # Assign to another variable
-                new_val = ctx_stack.variable_get_value(p[2])
-                ctx_stack.variable_modify_value(new_val)
-            else:
-                pass
-                # Raise error. Variable on p[2] is not declared
+        else:
+            new_node = AssignExpressionNode(p[0], p[1], type(p[2]) is str if expression_is_parsed(p[2]) else True)
+            return "{} = {}".format(p[1], p[2])
 
     @_('rel_expression',
        'rel_expression EQUALS eq_expression'
        )
     def eq_expression(self, p):
-        if(len(p) == 1):
+        if len(p) == 1:
             return p[0]
         else:
             if constant_operands(p):
@@ -57,7 +63,7 @@ class CalcParser(Parser):
        'sum_expression "<" rel_expression'
        )
     def rel_expression(self, p):
-        if(len(p) == 1):
+        if len(p) == 1:
             return p[0]
         else:
             if constant_operands(p):
@@ -67,14 +73,13 @@ class CalcParser(Parser):
                     return p[0] < p[2]
             else:
                 return expr_str(p)
-            
 
     @_('mul_expression',
        'mul_expression "+" sum_expression',
        'mul_expression "-" sum_expression'
        )
     def sum_expression(self, p):
-        if(len(p) == 1):
+        if len(p) == 1:
             return p[0]
         else:
             if constant_operands(p):
@@ -85,14 +90,13 @@ class CalcParser(Parser):
             else:
                 return expr_str(p)
 
-
     @_('primary_expression',
        'primary_expression "*" mul_expression',
        'primary_expression "/" mul_expression',
        'primary_expression "%" mul_expression'
        )
     def mul_expression(self, p):
-        if(len(p) == 1):
+        if len(p) == 1:
             return p[0]
         else:
             if constant_operands(p):
@@ -113,15 +117,29 @@ class CalcParser(Parser):
        )
     def primary_expression(self, p):
         if p[0] == "(":
-            return p[1]
+            if is_constant(p[1]):
+                return p[1]
+            else:
+                return "({})".format(p[1])
         else:
             try:
                 return int(p[0])
             except:
                 try:
                     return float(p[0])
-                except:
-                    return p[0]
+                except:  # Is another variable
+                    var = ctx_stack.search_variable(p[0])
+
+                    if var:
+                        if var.is_parsed:
+                            if var.value:
+                                return var.value
+                            else:
+                                return p[0]  # Variable exists but does not have a value yet
+                        else:
+                            return p[0]  # Variable exists but it has not been completely parsed yet
+                    else:
+                        semantic_error("Variable {} is not declared".format(p[0]))
 
     #
     # Declarations
@@ -130,17 +148,15 @@ class CalcParser(Parser):
     @_('declaration_specifiers opt_declaration')
     def declaration(self, p):
         data_type, identifier = p.declaration_specifiers
-        
-        if not ctx_stack.variable_is_declared(identifier):
-            var_type = type(p[1])
-            if var_type is None or var_type is data_type:
-                ctx_stack.variable_add_to_context(variable(identifier, data_type, p[1]))
-            else:
-                pass
-                # Raise error. Declaration type and assigned type do not match
-        else:
-            pass
-            # Raise error. Variable already declared
+        is_parsed = True
+
+        # If the string has an operator, it has not been completely parsed yet
+        if type(p[1]) is str:
+            is_parsed = expression_is_parsed(p[1])
+
+        ctx_stack.context_add_instruction(
+            DeclarationNode(identifier, p[1], data_type, is_parsed)
+        )
 
         return p
 
@@ -163,8 +179,8 @@ class CalcParser(Parser):
     @_('";"',
        'initializer ";"'
        )
-    def opt_declaration(self, p): 
-        if(len(p) == 1):
+    def opt_declaration(self, p):
+        if len(p) == 1:
             return None
         else:
             return p[0]
@@ -173,10 +189,18 @@ class CalcParser(Parser):
     def initializer(self, p):
         return p[1]
 
+
 if __name__ == "__main__":
     lexer = CalcLexer()
     parser = CalcParser()
-    text = "please int a = 32 * (1 + 2);"
+    text = "please int a = 32 % (1 + 10);"
+    # text = "please int a = abc;"
+
+    # newvar = Variable("abc", int, True)
+    # ctx_stack.variable_add_to_context(newvar)
 
     parser.parse(lexer.tokenize(text))
+    # print(ctx_stack.stack[0].instructions[0].parsing_completed)
+    ctx_stack.run_context()
     print(ctx_stack.variable_get_value("a"))
+

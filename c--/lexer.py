@@ -25,9 +25,15 @@ class CalcLexer(Lexer):
         VOID
     }
 
-    literals = {
-        '+', '-', '/', '*', '=', '%', '>', '<', '(', ')', ';'
+    operators = {
+        '+', '-', '/', '*', '=', '%', '>', '<'
     }
+
+    other = {
+        '(', ')', ';'
+    }
+
+    literals = operators | other
 
     # Set ignored tokens
 

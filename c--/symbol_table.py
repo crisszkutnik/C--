@@ -1,10 +1,15 @@
-class variable:
-    def __init__(self, name, t, value=None):
+from errors import semantic_error
+
+
+class Variable:
+    def __init__(self, name, t, is_parsed, value=None):
         self.name = name
         self.type = t
+        self.is_parsed = is_parsed
         self.value = value
 
-class instruction_context:
+
+class InstructionContext:
     variables = []
     contexts = []
     instructions = []
@@ -19,28 +24,31 @@ class instruction_context:
         self.contexts.append(ctx)
 
     def run(self):
-        for i in instructions:
+        for i in self.instructions:
             i.run_instruction()
 
-class function_context(instruction_context):
+
+class FunctionContext(InstructionContext):
     def __init__(self, name, t, args=[]):
         self.name = name
         self.return_type = t
         self.args = args
 
-class block_context(instruction_context):
+
+class BlockContext(InstructionContext):
     def __init__(self):
         pass
 
-class context_stack:
+
+class ContextStack:
     def __init__(self):
-        self.stack = [function_context('main', 'void')]
+        self.stack = [FunctionContext('main', 'void')]
 
     def search_variable(self, name):
         for i in range(len(self.stack) - 1, -1, -1):
             variables = self.stack[i].variables
             for var in variables:
-                if(var.name == name):
+                if var.name == name:
                     return var
 
         return None
@@ -51,36 +59,36 @@ class context_stack:
     #
     # Variable methods on context
     #
-        
-    def variable_is_declared(self, name):
-        return self.search_variable(name) != None
 
-    def variable_get_value(self, name):
+    def variable_is_declared(self, name: str) -> bool:
+        return not (self.search_variable(name) is None)
+
+    def variable_get_value(self, name: str):
         var = self.search_variable(name)
         if var:
             return var.value
         else:
-            pass
+            semantic_error("variable {} is not declared".format(name))
             # Raise error. Variable not declared
-    
-    def variable_add_to_context(self, var):
+
+    def variable_add_to_context(self, var: Variable):
         self.stack_head().add_variable(var)
 
-    def variable_modify_value(self, name, new_value):
+    def variable_modify_value(self, name: str, new_value):
         var = self.search_variable(name)
 
         if var:
             if var.type == type(new_value):
                 var.value = new_value
             else:
-                pass
+                semantic_error("types do not match")
                 # Raise error. Types do not match
         else:
-            pass
+            semantic_error("variable {} is not declared".format(name))
             # Raise error. Variable not declared
 
     #
-    # Context managment methods
+    # Context management methods
     #
 
     def add_context(self, new_ctx):
@@ -91,4 +99,11 @@ class context_stack:
     def pop_context(self):
         self.stack.pop()
 
-ctx_stack = context_stack()
+    def context_add_instruction(self, ins):
+        self.stack_head().add_instruction(ins)
+
+    def run_context(self):
+        for ctx in self.stack:
+            ctx.run()
+
+ctx_stack = ContextStack()
