@@ -33,111 +33,133 @@ class CalcParser(Parser):
     # Expressions
     #
 
-    @_('assing_expression')
+    @_('assign_expression')
     def expression(self, p):
         return p
 
-    @_('eq_expression',
-       'ID "=" eq_expression'
-       )
-    def assing_expression(self, p):
-        if len(p) == 1:
-            return p[0]
-        else:
-            new_node = AssignExpressionNode(p[0], p[1], type(p[2]) is str if expression_is_parsed(p[2]) else True)
-            return "{} = {}".format(p[1], p[2])
+    # assign_expresion
 
-    @_('rel_expression',
-       'rel_expression EQUALS eq_expression'
-       )
+    @_('eq_expression')
+    def assign_expression(self, p):
+        return p[0]
+
+    @_('ID "=" eq_expression')
+    def assign_expression(self, p):
+        new_node = AssignExpressionNode(p[0], p[1], type(p[2]) is str if expression_is_parsed(p[2]) else True)
+        return "{} = {}".format(p[1], p[2])
+
+    # eq_expression
+
+    @_('rel_expression')
     def eq_expression(self, p):
-        if len(p) == 1:
-            return p[0]
-        else:
-            if constant_operands(p):
-                return p[0] == p[2]
-            else:
-                return expr_str(p)
+        return p[0]
 
-    @_('sum_expression',
-       'sum_expression ">" rel_expression',
-       'sum_expression "<" rel_expression'
-       )
+    @_('rel_expression EQUALS eq_expression')
+    def eq_expression(self, p):
+        if constant_operands(p):
+            return p[0] == p[2]
+        else:
+            return expr_str(p)
+
+    # rel_expression
+
+    @_('sum_expression')
     def rel_expression(self, p):
-        if len(p) == 1:
-            return p[0]
-        else:
-            if constant_operands(p):
-                if p[1] == ">":
-                    return p[0] > p[2]
-                elif p[1] == "<":
-                    return p[0] < p[2]
-            else:
-                return expr_str(p)
+        return p[0]
 
-    @_('mul_expression',
-       'mul_expression "+" sum_expression',
-       'mul_expression "-" sum_expression'
-       )
+    @_('sum_expression ">" rel_expression')
+    def rel_expression(self, p):
+        if constant_operands(p):
+            return p[0] > p[2]
+        else:
+            return expr_str(p)
+
+    @_('sum_expression "<" rel_expression')
+    def rel_expression(self, p):
+        if constant_operands(p):
+            return p[0] < p[2]
+        else:
+            return expr_str(p)
+
+    # sum_expression
+
+    @_('mul_expression')
     def sum_expression(self, p):
-        if len(p) == 1:
-            return p[0]
-        else:
-            if constant_operands(p):
-                if p[1] == "+":
-                    return p[0] + p[2]
-                elif p[1] == "-":
-                    return p[0] - p[2]
-            else:
-                return expr_str(p)
+        return p[0]
 
-    @_('primary_expression',
-       'primary_expression "*" mul_expression',
-       'primary_expression "/" mul_expression',
-       'primary_expression "%" mul_expression'
-       )
+    @_('mul_expression "+" sum_expression')
+    def sum_expression(self, p):
+        if constant_operands(p):
+            return p[0] + p[2]
+        else:
+            return expr_str(p)
+
+    @_('mul_expression "-" sum_expression')
+    def sum_expression(self, p):
+        if constant_operands(p):
+            return p[0] - p[2]
+        else:
+            return expr_str(p)
+
+    # mul_expression
+
+    @_('primary_expression')
     def mul_expression(self, p):
-        if len(p) == 1:
-            return p[0]
-        else:
-            if constant_operands(p):
-                if p[1] == "*":
-                    return p[0] * p[2]
-                elif p[1] == "/":
-                    return p[0] / p[2]
-                elif p[1] == "%":
-                    return p[0] % p[2]
-            else:
-                return expr_str(p)
+        return p[0]
 
-    @_('ID',
-       'FLOAT',
-       'INTEGER',
-       'STRING',
-       '"(" eq_expression ")"'
-       )
+    @_('primary_expression "*" mul_expression')
+    def mul_expression(self, p):
+        if constant_operands(p):
+            return p[0] * p[2]
+        else:
+            return expr_str(p)
+
+    @_('primary_expression "/" mul_expression')
+    def mul_expression(self, p):
+        if constant_operands(p):
+            return p[0] / p[2]
+        else:
+            return expr_str(p)
+
+    @_('primary_expression "%" mul_expression')
+    def mul_expression(self, p):
+        if constant_operands(p):
+            return p[0] % p[2]
+        else:
+            return expr_str(p)
+
+    # primary_expression
+
+    @_('FLOAT')
     def primary_expression(self, p):
-        if p[0] == "(":
-            if is_constant(p[1]):
-                return p[1]
-            else:
-                return "({})".format(p[1])
-        else:
-            try:
-                return int(p[0])
-            except:
-                try:
-                    return float(p[0])
-                except:  # Is another variable
-                    var = ctx_stack.search_variable(p[0])
+        return float(p[0])
 
-                    if var:
-                        if var.value:
-                            return var.value
-                        else:
-                            return p[0]  # Variable exists but does not have a value yet
-                    else:
-                        semantic_error("Variable {} is not declared".format(p[0]))
+    @_('INTEGER')
+    def primary_expression(self, p):
+        return int(p[0])
+
+    @_('STRING')
+    def primary_expression(self, p):
+        return p[0]
+
+    @_('ID')
+    def primary_expression(self, p):
+        var = ctx_stack.search_variable(p[0])
+
+        if var:
+            if var.value:
+                return var.value
+            else:
+                return p[0]  # Variable exists but does not have a value yet
+        else:
+            semantic_error("Variable {} is not declared".format(p[0]))
+
+    @_('"(" eq_expression ")"')
+    def primary_expression(self, p):
+        if is_constant(p[1]):
+            return p[1]
+        else:
+            return "({})".format(p[1])
 
     #
     # Declarations
@@ -167,26 +189,31 @@ class CalcParser(Parser):
     def declaration_specifiers(self, p):
         return p[1], p[2]
 
-    @_('INT',
-       'FLOAT_T',
-       'STRING_T'
-       )
-    def data_type(self, p):
-        if p[0] == "int":
-            return int
-        elif p[0] == "float":
-            return float
-        elif p[0] == "string":
-            return str
+    # data_type
 
-    @_('";"',
-       'initializer ";"'
-       )
+    @_('INT')
+    def data_type(self, p):
+        return int
+
+    @_('FLOAT_T')
+    def data_type(self, p):
+        return float
+
+    @_('STRING_T')
+    def data_type(self, p):
+        return str
+
+    # opt_declaration
+
+    @_('";"')
     def opt_declaration(self, p):
-        if len(p) == 1:
-            return None
-        else:
-            return p[0]
+        return None
+
+    @_('initializer ";"')
+    def opt_declaration(self, p):
+        return p[0]
+
+    # initializer
 
     @_('"=" eq_expression')
     def initializer(self, p):
@@ -216,15 +243,16 @@ class CalcParser(Parser):
     def empty(self, p):
         pass
 
+
 if __name__ == "__main__":
     lexer = CalcLexer()
     parser = CalcParser()
     # text = "please int a = 32 % (1 + 10); please int b = a;"
-    text = "please int a; please int abc = a"
+    # text = "please int a; please int abc = a"
+    text = "please int a = 10; please int b = a * 2;"
 
     parser.parse(lexer.tokenize(text))
 
     ctx_stack.run_context()
     # print(ctx_stack.variable_get_value("abc"))
-    # print(ctx_stack.variable_get_value("b"))
-
+    print(ctx_stack.variable_get_value("b"))
