@@ -125,7 +125,7 @@ class ExpressionParser(Parser):
                 runtime_error("Can not assign to variable {} because it does not have a value".format(p[0]))
                 # Runtime error. Variable does not have a value
         else:
-            pass
+            runtime_error("Variable {} is not declared".format(p[0]))
             # Runtime error. Variable not declared
 
 

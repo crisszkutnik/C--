@@ -28,10 +28,6 @@ class InstructionContext:
     def add_context(self, ctx):
         self.contexts.append(ctx)
 
-    def run(self):
-        for i in self.instructions:
-            i.run_instruction()
-
 
 class FunctionContext(InstructionContext):
     def __init__(self, name, t, args=[]):
@@ -39,10 +35,17 @@ class FunctionContext(InstructionContext):
         self.return_type = t
         self.args = args
 
+    def run(self):
+        for i in self.instructions:
+            i.run_instruction()
+
 
 class BlockContext(InstructionContext):
-    def __init__(self):
-        pass
+    def __init__(self, node):
+        self.node = node
+
+    def run(self):
+        self.node.run_node()
 
 
 class ContextStack:

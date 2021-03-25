@@ -3,7 +3,7 @@ The nonterminals `expression` and `assign_expression` are unreachable in this ve
 ```
 // Expressions
 
-expression	            : assign_expression
+expression              : assign_expression
 
 assign_expression       : eq_expression
                         | ID '=' eq_expression
@@ -45,11 +45,23 @@ opt_declaration	        : ';'
 
 initializer             : '=' eq_expression
 
+// Sentences
+
+sentence                : compound_sentence
+                        | decision_sentence
+                        
+compound_sentence       : '{' '{' code_block_list '}' '}'
+
+decision_sentence       : IF '(' eq_expression ')' compound_sentence
+
 // Code structure
 
-program                 : declaration code_block
-                        | expression ';' code_block
+program                 : sentence
+                        | code_block_list
                         
-code_block              : program
+code_block_list         : code_block
                         | empty
+                        
+code_block              : declaration code_block_list
+                        | expression ';' code_block_list
 ```

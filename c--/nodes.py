@@ -32,7 +32,6 @@ class AssignExpressionNode:
                 new_val = parse_expr(self.expr)
                 if new_val:
                     var.modify_value(new_val)
-                pass
         else:
             pass
             # Runtime error. Variable not declared
@@ -43,17 +42,30 @@ class AssignExpressionNode:
 #
 
 class DeclarationNode:
-    def __init__(self, identifier, expr, t):
+    def __init__(self, identifier, expr, t, is_parsed):
         self.identifier = identifier
         self.expr = expr
         self.t = t
-        self.var = Variable(self.identifier, self.t)
+        self.is_parsed = is_parsed
 
         if ctx_stack.variable_is_declared(self.identifier):
             semantic_error("Variable {} is already declared".format(identifier))
         else:
+            self.var = Variable(self.identifier, self.t)
             ctx_stack.variable_add_to_context(self.var)
 
     def run_instruction(self):
         # ctx_stack.variable_add_to_context(Variable(self.identifier, self.t, parse_expr(self.expr)))
-        self.var.value = parse_expr(self.expr)
+        if self.is_parsed:
+            self.var.value = self.expr
+        else:
+            self.var.value = parse_expr(self.expr)
+
+
+#
+# Sentences
+#
+
+class DecisionNode:
+    def __init__(self, expr, ):
+        pass

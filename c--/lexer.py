@@ -17,6 +17,7 @@ class CalcLexer(Lexer):
         FOR,
         PLEASE,
         DEFINE,
+        DO,
 
         #Data types
         INT,
@@ -57,6 +58,7 @@ class CalcLexer(Lexer):
     ID['else'] = ELSE
     ID['while'] = WHILE
     ID['please'] = PLEASE
+    ID['do'] = DO
 
     #Data types
     ID['int'] = INT

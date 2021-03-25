@@ -45,7 +45,12 @@ class CalcParser(Parser):
 
     @_('ID "=" eq_expression')
     def assign_expression(self, p):
-        new_node = AssignExpressionNode(p[0], p[1], type(p[2]) is str if expression_is_parsed(p[2]) else True)
+        is_parsed = type(p[2]) is int or type(p[2]) is float
+
+        if not is_parsed:
+            is_parsed = expression_is_parsed(is_parsed)
+
+        new_node = AssignExpressionNode(p[0], p[1], is_parsed)
         return "{} = {}".format(p[1], p[2])
 
     # eq_expression
@@ -147,10 +152,7 @@ class CalcParser(Parser):
         var = ctx_stack.search_variable(p[0])
 
         if var:
-            if var.value:
-                return var.value
-            else:
-                return p[0]  # Variable exists but does not have a value yet
+            return p[0]
         else:
             semantic_error("Variable {} is not declared".format(p[0]))
 
@@ -168,20 +170,28 @@ class CalcParser(Parser):
     @_('declaration_specifiers opt_declaration')
     def declaration(self, p):
         data_type, identifier = p.declaration_specifiers
-        is_parsed = type(p[1]) is not None
 
-        # If the string has an operator, it has not been completely parsed yet
-        if type(p[1]) is str:
-            is_parsed = expression_is_parsed(p[1])
+        is_parsed = type(p[1]) is int or type(p[1]) is float
 
         if not is_parsed:
-            ctx_stack.context_add_instruction(
-                DeclarationNode(identifier, p[1], data_type)
-            )
-        else:
-            ctx_stack.variable_add_to_context(
-                Variable(identifier, data_type, p[1])
-            )
+            is_parsed = expression_is_parsed(p[1])
+
+        ctx_stack.context_add_instruction(
+            DeclarationNode(identifier, p[1], data_type, is_parsed)
+        )
+        # is_parsed = type(p[1]) is not None
+        #
+        # if type(p[1]) is str:
+        #     is_parsed = expression_is_parsed(p[1])
+        #
+        # if not is_parsed:
+        #     ctx_stack.context_add_instruction(
+        #         DeclarationNode(identifier, p[1], data_type)
+        #     )
+        # else:
+        #     ctx_stack.variable_add_to_context(
+        #         Variable(identifier, data_type, p[1])
+        #     )
 
         return p
 
@@ -220,17 +230,39 @@ class CalcParser(Parser):
         return p[1]
 
     #
+    # Sentences
+    #
+
+    @_('compound_sentence',
+       'decision_sentence'
+       )
+    def sentence(self, p):
+        return p
+
+    @_('"{" "{" code_block_list "}" "}"')
+    def compound_sentence(self, p):
+        return p
+
+    @_('PLEASE IF "(" eq_expression ")" DO compound_sentence')
+    def decision_sentence(self, p):
+        return p
+
+    #
     # Code structure
     #
 
-    @_('declaration code_block',
-       'expression ";" code_block'
-       )
+    @_('code_block_list')
     def program(self, p):
         return p
 
-    @_('program',
+    @_('code_block',
        'empty'
+       )
+    def code_block_list(self, p):
+        return p
+
+    @_('declaration code_block_list',
+       'expression ";" code_block_list'
        )
     def code_block(self, p):
         return p
@@ -249,10 +281,14 @@ if __name__ == "__main__":
     parser = CalcParser()
     # text = "please int a = 32 % (1 + 10); please int b = a;"
     # text = "please int a; please int abc = a"
-    text = "please int a = 10; please int b = a * 2;"
+    # text = "please int a = 10; please int b = a * 2;"
+    text = "please int a = 10; please int b = (a - 5) * 3;"
+    # text = """
+    #
+    #         """
 
     parser.parse(lexer.tokenize(text))
 
-    ctx_stack.run_context()
+    # ctx_stack.run_context()
     # print(ctx_stack.variable_get_value("abc"))
-    print(ctx_stack.variable_get_value("b"))
+    # print(ctx_stack.variable_get_value("b"))
