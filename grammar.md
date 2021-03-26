@@ -52,16 +52,25 @@ sentence                : compound_sentence
                         
 compound_sentence       : '{' '{' code_block_list '}' '}'
 
-decision_sentence       : IF '(' eq_expression ')' compound_sentence
+decision_sentence       : PLEASE IF '(' eq_expression ')' DO compound_sentence else_statement
+
+else_statement          : ELIF '(' eq_expression ')' DO compound_sentence else_statement
+                        | ELSE DO compound_sentence
+                        | empty
+
+sentence_code_block     : declaration sentence_code_block
+                        | expression ';' sentence_code_block
+                        | sentence sentence_code_block
+                        | empty
 
 // Code structure
 
-program                 : sentence
-                        | code_block_list
+program                 : code_block_list
                         
-code_block_list         : code_block
+code_block_list         : code_block code_block_list
                         | empty
                         
-code_block              : declaration code_block_list
-                        | expression ';' code_block_list
+code_block              : declaration
+                        | expression ';'
+                        | sentence
 ```

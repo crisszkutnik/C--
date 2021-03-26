@@ -12,6 +12,7 @@ class CalcLexer(Lexer):
 
         # Keywords
         IF,
+        ELIF,
         ELSE,
         WHILE,
         FOR,
@@ -31,7 +32,7 @@ class CalcLexer(Lexer):
     }
 
     other = {
-        '(', ')', ';'
+        '(', ')', ';', '{', '}'
     }
 
     literals = operators | other
@@ -65,6 +66,7 @@ class CalcLexer(Lexer):
     ID['float'] = FLOAT_T
     ID['string'] = STRING_T
     ID['void'] = VOID
+    ID['elif'] = ELIF
 
     # Rule for newlines
     @_(r'\n+')

@@ -1,9 +1,9 @@
 from lexer import CalcLexer
 from sly import Parser
 from helpers import tcolours, is_constant, constant_operands, expr_str, is_identifier
-from symbol_table import ctx_stack, Variable
+from symbol_table import ctx_stack, BlockContext
 from errors import semantic_error
-from nodes import AssignExpressionNode, DeclarationNode
+from nodes import AssignExpressionNode, DeclarationNode, DecisionNode
 
 
 def expression_is_parsed(expr: str):
@@ -14,18 +14,25 @@ def expression_is_parsed(expr: str):
             if e in expr:
                 return False
 
+def generate_block_context(instructions):
+    new_context = BlockContext()
+    new_context.instructions = instructions
+    return new_context
 
 class CalcParser(Parser):
     tokens = CalcLexer.tokens
     start = 'program'
+    tmp_ctx = []
+
+    # tmp_ctx is an auxiliary context used to parse statements
 
     # Error handler
     def error(self, err):
         if err:
             print(err)
-            print(tcolours.red + "ERR: Semantic error" + tcolours.reset + " - Line {}: ".format(err.lineno) + err.value)
+            print(tcolours.red + "ERR: Syntax error" + tcolours.reset + " - Line {}: ".format(err.lineno) + err.value)
         else:
-            print(tcolours.red + "ERR: Semantic error" + tcolours.reset + " - EOF")
+            print(tcolours.red + "ERR: Syntax error" + tcolours.reset + " - EOF")
 
     # Rules
 
@@ -35,13 +42,18 @@ class CalcParser(Parser):
 
     @_('assign_expression')
     def expression(self, p):
+        is_assign_expression, instruction = p[0]
+
+        if is_assign_expression:
+            ctx_stack.context_add_instruction(instruction)
+
         return p
 
     # assign_expresion
 
     @_('eq_expression')
     def assign_expression(self, p):
-        return p[0]
+        return False, p[0]
 
     @_('ID "=" eq_expression')
     def assign_expression(self, p):
@@ -50,8 +62,7 @@ class CalcParser(Parser):
         if not is_parsed:
             is_parsed = expression_is_parsed(is_parsed)
 
-        new_node = AssignExpressionNode(p[0], p[1], is_parsed)
-        return "{} = {}".format(p[1], p[2])
+        return True, AssignExpressionNode(p[0], p[2], is_parsed)
 
     # eq_expression
 
@@ -176,22 +187,10 @@ class CalcParser(Parser):
         if not is_parsed:
             is_parsed = expression_is_parsed(p[1])
 
-        ctx_stack.context_add_instruction(
-            DeclarationNode(identifier, p[1], data_type, is_parsed)
-        )
-        # is_parsed = type(p[1]) is not None
-        #
-        # if type(p[1]) is str:
-        #     is_parsed = expression_is_parsed(p[1])
-        #
-        # if not is_parsed:
-        #     ctx_stack.context_add_instruction(
-        #         DeclarationNode(identifier, p[1], data_type)
-        #     )
-        # else:
-        #     ctx_stack.variable_add_to_context(
-        #         Variable(identifier, data_type, p[1])
-        #     )
+        node = DeclarationNode(identifier, p[1], data_type, is_parsed)
+
+        node.add_to_context()
+        ctx_stack.context_add_instruction(node)
 
         return p
 
@@ -239,13 +238,29 @@ class CalcParser(Parser):
     def sentence(self, p):
         return p
 
-    @_('"{" "{" code_block_list "}" "}"')
+    @_('"{" "{" push_block_context code_block_list "}" "}"')
     def compound_sentence(self, p):
+        ctx = p[2]
+        return ctx_stack.pop_context()
+
+    @_('PLEASE IF "(" eq_expression ")" DO compound_sentence else_statement')
+    def decision_sentence(self, p):
+        ctx_stack.context_add_instruction(
+            DecisionNode([(p[3], p[6])] + p[7])
+        )
         return p
 
-    @_('PLEASE IF "(" eq_expression ")" DO compound_sentence')
-    def decision_sentence(self, p):
-        return p
+    @_('empty')
+    def else_statement(self, p):
+        return []
+
+    @_('ELSE DO compound_sentence')
+    def else_statement(self, p):
+        return [(None, p[2])]
+
+    @_('ELIF "(" eq_expression ")" DO compound_sentence else_statement')
+    def else_statement(self, p):
+        return [(p[2], p[5])] + p[6]
 
     #
     # Code structure
@@ -255,15 +270,21 @@ class CalcParser(Parser):
     def program(self, p):
         return p
 
-    @_('code_block',
+    @_('code_block code_block_list',
        'empty'
        )
     def code_block_list(self, p):
         return p
 
-    @_('declaration code_block_list',
-       'expression ";" code_block_list'
-       )
+    @_('declaration')
+    def code_block(self, p):
+        return p
+
+    @_('expression ";"')
+    def code_block(self, p):
+        return p
+
+    @_('sentence')
     def code_block(self, p):
         return p
 
@@ -275,6 +296,11 @@ class CalcParser(Parser):
     def empty(self, p):
         pass
 
+    @_('')
+    def push_block_context(self, p):
+        ctx = BlockContext()
+        ctx_stack.add_context(ctx)
+        return ctx
 
 if __name__ == "__main__":
     lexer = CalcLexer()
@@ -282,13 +308,17 @@ if __name__ == "__main__":
     # text = "please int a = 32 % (1 + 10); please int b = a;"
     # text = "please int a; please int abc = a"
     # text = "please int a = 10; please int b = a * 2;"
-    text = "please int a = 10; please int b = (a - 5) * 3;"
-    # text = """
-    #
-    #         """
+    # text = "please int a = 10; please int b = (a - 5) * 3;"
+    # text = "please int a = 10; a = 5;"
+    text = """
+            please int a = 10;
+            please if (a + 5 > 5 - 2) do {{ please int b = 2; a = 50; }}
+            elif (5) do {{ please int c = 60; c = 2; }}
+            else do {{ please int d = 60; }}
+            """
 
     parser.parse(lexer.tokenize(text))
 
-    # ctx_stack.run_context()
+    ctx_stack.run_context()
     # print(ctx_stack.variable_get_value("abc"))
-    # print(ctx_stack.variable_get_value("b"))
+    print(ctx_stack.variable_get_value("a"))

@@ -14,10 +14,11 @@ class Variable:
             semantic_error("types do not match")
 
 
-class InstructionContext:
-    variables = []
-    contexts = []
-    instructions = []
+class BlockContext:
+    def __init__(self):
+        self.variables = []
+        self.contexts = []
+        self.instructions = []
 
     def add_variable(self, var):
         self.variables.append(var)
@@ -28,9 +29,15 @@ class InstructionContext:
     def add_context(self, ctx):
         self.contexts.append(ctx)
 
+    def run(self):
+        for i in self.instructions:
+            i.run_instruction()
 
-class FunctionContext(InstructionContext):
+
+# The context of a function is similar to a BlockContext but with extra features
+class FunctionContext(BlockContext):
     def __init__(self, name, t, args=[]):
+        super().__init__()
         self.name = name
         self.return_type = t
         self.args = args
@@ -38,14 +45,6 @@ class FunctionContext(InstructionContext):
     def run(self):
         for i in self.instructions:
             i.run_instruction()
-
-
-class BlockContext(InstructionContext):
-    def __init__(self, node):
-        self.node = node
-
-    def run(self):
-        self.node.run_node()
 
 
 class ContextStack:
@@ -97,11 +96,14 @@ class ContextStack:
 
     def add_context(self, new_ctx):
         head = self.stack_head()
-        head.add_context(new_ctx)
         self.stack.append(new_ctx)
 
+    def add_function_context(self, new_ctx):
+        self.stack_head().add_context(new_ctx)
+        self.add_context(new_ctx)
+
     def pop_context(self):
-        self.stack.pop()
+        return self.stack.pop()
 
     def context_add_instruction(self, ins):
         self.stack_head().add_instruction(ins)

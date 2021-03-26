@@ -132,6 +132,6 @@ class ExpressionParser(Parser):
 if __name__ == "__main__":
     lexer = CalcLexer()
     parser = ExpressionParser()
-    text = '32 * (1+2)'
+    text = '32 * 3'
 
     print(parser.parse(lexer.tokenize(text)))

@@ -2,6 +2,7 @@ from symbol_table import ctx_stack, Variable
 from errors import semantic_error
 from expression_solver import ExpressionParser
 from lexer import CalcLexer
+from helpers import is_truthy
 
 expression_parser = ExpressionParser()
 expression_lexer = CalcLexer()
@@ -47,15 +48,16 @@ class DeclarationNode:
         self.expr = expr
         self.t = t
         self.is_parsed = is_parsed
+        self.var = Variable(self.identifier, self.t)
 
+    # Adds variable to context that is on top of stack
+    def add_to_context(self):
         if ctx_stack.variable_is_declared(self.identifier):
-            semantic_error("Variable {} is already declared".format(identifier))
+            semantic_error("Variable {} is already declared".format(self.identifier))
         else:
-            self.var = Variable(self.identifier, self.t)
             ctx_stack.variable_add_to_context(self.var)
 
     def run_instruction(self):
-        # ctx_stack.variable_add_to_context(Variable(self.identifier, self.t, parse_expr(self.expr)))
         if self.is_parsed:
             self.var.value = self.expr
         else:
@@ -66,6 +68,18 @@ class DeclarationNode:
 # Sentences
 #
 
+# cases is of the shape [(expr, [instructions]]
+
 class DecisionNode:
-    def __init__(self, expr, ):
-        pass
+    def __init__(self, cases):
+        self.cases = cases
+
+    def run_instruction(self):
+        for case in self.cases:
+            expr, context = case
+
+            if expr is None or is_truthy(parse_expr(expr)):
+                ctx_stack.add_context(context)
+                context.run()
+                ctx_stack.pop_context()
+                return

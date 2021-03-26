@@ -30,3 +30,11 @@ def constant_operands(p):
 
 def is_identifier(s: str):
     return not (s[0] == '"')
+
+
+#
+# Other
+#
+
+def is_truthy(expr):
+    return expr or expr != 0
