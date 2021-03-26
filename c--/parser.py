@@ -57,10 +57,10 @@ class CalcParser(Parser):
 
     @_('ID "=" eq_expression')
     def assign_expression(self, p):
-        is_parsed = type(p[2]) is int or type(p[2]) is float
+        is_parsed = type(p[2]) is int or type(p[2]) is float or type(p[2]) is bool
 
         if not is_parsed:
-            is_parsed = expression_is_parsed(is_parsed)
+            is_parsed = expression_is_parsed(p[2])
 
         return True, AssignExpressionNode(p[0], p[2], is_parsed)
 
@@ -312,7 +312,7 @@ if __name__ == "__main__":
     # text = "please int a = 10; a = 5;"
     text = """
             please int a = 10;
-            please if (a + 5 > 5 - 2) do {{ please int b = 2; a = 50; }}
+            please if (a + 5 > 5 - 2) do {{ please int b = 2; a =  b * 50; }}
             elif (5) do {{ please int c = 60; c = 2; }}
             else do {{ please int d = 60; }}
             """

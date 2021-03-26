@@ -1,3 +1,7 @@
+import re
+from lexer import CalcLexer
+
+
 class tcolours:
     reset = "\033[0m"
     underline = "\033[4m"
@@ -29,7 +33,7 @@ def constant_operands(p):
 
 
 def is_identifier(s: str):
-    return not (s[0] == '"')
+    return re.search(CalcLexer.ID, s).group() == s
 
 
 #
