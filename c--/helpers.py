@@ -33,7 +33,12 @@ def constant_operands(p):
 
 
 def is_identifier(s: str):
-    return re.search(CalcLexer.ID, s).group() == s
+    res = re.search(CalcLexer.ID, s)
+
+    if res is None:
+        return False
+    else:
+        return res.group() == s
 
 
 #

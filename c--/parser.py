@@ -169,7 +169,10 @@ class CalcParser(Parser):
         var = ctx_stack.search_variable(p[0])
 
         if var:
-            return p[0] + "[{}]".format(p[1]) if p[1] is not None else ""
+            if p[1] is None:
+                return p[0]
+            else:
+                return p[0] + "[{}]".format(p[1])
         else:
             semantic_error("Variable {} is not declared".format(p[0]))
 
@@ -190,7 +193,6 @@ class CalcParser(Parser):
 
     @_('eq_expression "," expression_list')
     def expression_list(self, p):
-
         return [(expression_is_parsed(p[0]), p[0])] + p[2]
 
     @_('eq_expression')
