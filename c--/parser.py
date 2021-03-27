@@ -3,16 +3,22 @@ from sly import Parser
 from helpers import tcolours, is_constant, constant_operands, expr_str, is_identifier
 from symbol_table import ctx_stack, BlockContext
 from errors import semantic_error
-from nodes import AssignExpressionNode, DeclarationNode, DecisionNode
+from nodes import AssignExpressionNode, DeclarationNode, DecisionNode, ListDeclarationNode
 
 
 def expression_is_parsed(expr: str):
-    if is_identifier(expr):
-        return False
-    else:
-        for e in CalcLexer.operators:
-            if e in expr:
-                return False
+    is_parsed = type(expr) is int or type(expr) is float or type(expr) is bool
+
+    if not is_parsed:
+        if is_identifier(expr):
+            is_parsed = False
+        else:
+            for e in CalcLexer.operators:
+                if e in expr:
+                    is_parsed = False
+
+    return is_parsed
+
 
 def generate_block_context(instructions):
     new_context = BlockContext()
@@ -158,12 +164,12 @@ class CalcParser(Parser):
     def primary_expression(self, p):
         return p[0]
 
-    @_('ID')
+    @_('ID arr_access')
     def primary_expression(self, p):
         var = ctx_stack.search_variable(p[0])
 
         if var:
-            return p[0]
+            return p[0] + "[{}]".format(p[1]) if p[1] is not None else ""
         else:
             semantic_error("Variable {} is not declared".format(p[0]))
 
@@ -174,18 +180,58 @@ class CalcParser(Parser):
         else:
             return "({})".format(p[1])
 
+    @_('"[" eq_expression "]"')
+    def arr_access(self, p):
+        return p[1]
+
+    @_('empty')
+    def arr_access(self, p):
+        return None
+
+    @_('eq_expression "," expression_list')
+    def expression_list(self, p):
+
+        return [(expression_is_parsed(p[0]), p[0])] + p[2]
+
+    @_('eq_expression')
+    def expression_list(self, p):
+        return [(expression_is_parsed(p[0]), p[0])]
+
     #
     # Declarations
     #
 
-    @_('declaration_specifiers opt_declaration')
+    @_('PLEASE declaration2')
     def declaration(self, p):
+        return p
+
+    @_('var_declaration',
+       'list_declaration'
+       )
+    def declaration2(self, p):
+        return p
+
+    @_('LIST ID opt_list_declaration')
+    def list_declaration(self, p):
+        node = ListDeclarationNode(p[1], p[2])
+        node.add_to_context()
+        ctx_stack.context_add_instruction(node)
+
+        return p
+
+    @_('";"')
+    def opt_list_declaration(self, p):
+        return None
+
+    @_('"=" "[" expression_list "]" ";"')
+    def opt_list_declaration(self, p):
+        return p[2]
+
+    @_('declaration_specifiers opt_declaration')
+    def var_declaration(self, p):
         data_type, identifier = p.declaration_specifiers
 
-        is_parsed = type(p[1]) is int or type(p[1]) is float
-
-        if not is_parsed:
-            is_parsed = expression_is_parsed(p[1])
+        is_parsed = expression_is_parsed(p[1])
 
         node = DeclarationNode(identifier, p[1], data_type, is_parsed)
 
@@ -194,9 +240,9 @@ class CalcParser(Parser):
 
         return p
 
-    @_('PLEASE data_type ID')
+    @_('data_type ID')
     def declaration_specifiers(self, p):
-        return p[1], p[2]
+        return p[0], p[1]
 
     # data_type
 
@@ -311,14 +357,12 @@ if __name__ == "__main__":
     # text = "please int a = 10; please int b = (a - 5) * 3;"
     # text = "please int a = 10; a = 5;"
     text = """
-            please int a = 10;
-            please if (a + 5 > 5 - 2) do {{ please int b = 2; a =  b * 50; }}
-            elif (5) do {{ please int c = 60; c = 2; }}
-            else do {{ please int d = 60; }}
+            please int b = 5;
+            please list a = [1, 2, b * 2, 4, 5];
             """
 
     parser.parse(lexer.tokenize(text))
 
-    ctx_stack.run_context()
+    # ctx_stack.run_context()
     # print(ctx_stack.variable_get_value("abc"))
-    print(ctx_stack.variable_get_value("a"))
+    # print(ctx_stack.variable_get_value("a"))

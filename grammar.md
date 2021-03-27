@@ -1,12 +1,10 @@
-The nonterminals `expression` and `assign_expression` are unreachable in this version of the grammar
-
 ```
 // Expressions
 
 expression              : assign_expression
 
 assign_expression       : eq_expression
-                        | ID '=' eq_expression
+                        | ID arr_access '=' eq_expression
 
 eq_expression           : rel_expression
                         | rel_expresion EQUALS eq_expression
@@ -24,17 +22,31 @@ mul_expression          : primary_expression
                         | primary_expression '/' mul_expression
                         | primary_expression '%' mul_expression
 
-primary_expression      : ID
+primary_expression      : ID arr_access
                         | FLOAT
                         | INTEGER
                         | STRING
+               
+arr_access              : '[' eq_expression ']'
+                        | empty
 
+expression_list         : eq_expression ',' expression_list
+                        | eq_expression
 
 // Declarations
 
-declaration             : declaration_specifiers opt_declaration
+declaration             : PLEASE declaration2
 
-declaration_specifiers  : PLEASE data_type ID
+declaration2            : var_declaration
+                        | list_declaration
+
+list_declaration        : LIST ID opt_list_declaration
+
+opt_list_declaration    : '=' '[' expression_list ']'
+
+var_declaration         : declaration_specifiers opt_declaration
+
+declaration_specifiers  : data_type ID
 
 data_type               : INT
                         | FLOAT_T
@@ -56,11 +68,6 @@ decision_sentence       : PLEASE IF '(' eq_expression ')' DO compound_sentence e
 
 else_statement          : ELIF '(' eq_expression ')' DO compound_sentence else_statement
                         | ELSE DO compound_sentence
-                        | empty
-
-sentence_code_block     : declaration sentence_code_block
-                        | expression ';' sentence_code_block
-                        | sentence sentence_code_block
                         | empty
 
 // Code structure

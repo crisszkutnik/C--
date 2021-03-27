@@ -1,5 +1,5 @@
-from symbol_table import ctx_stack, Variable
-from errors import semantic_error
+from symbol_table import ctx_stack, Variable, List
+from errors import semantic_error, runtime_error
 from expression_solver import ExpressionParser
 from lexer import CalcLexer
 from helpers import is_truthy
@@ -17,7 +17,11 @@ def parse_expr(expr):
     return expression_parser.parse(expression_lexer.tokenize(expr))
 
 
-class AssignExpressionNode:
+class Node:
+    pass
+
+
+class AssignExpressionNode(Node):
     def __init__(self, operator, expr, parsing_completed):
         self.operator = operator
         self.expr = expr
@@ -42,7 +46,7 @@ class AssignExpressionNode:
 # Declarations
 #
 
-class DeclarationNode:
+class DeclarationNode(Node):
     def __init__(self, identifier, expr, t, is_parsed):
         self.identifier = identifier
         self.expr = expr
@@ -64,13 +68,39 @@ class DeclarationNode:
             self.var.value = parse_expr(self.expr)
 
 
+class ListDeclarationNode(Node):
+    def __init__(self, identifier, values):
+        self.identifier = identifier
+        self.values = values
+        print(values)
+        self.list = List(identifier)
+
+    def add_to_context(self):
+        if ctx_stack.variable_is_declared(self.identifier):
+            semantic_error("Variable {} is already declared".format(self.identifier))
+        else:
+            ctx_stack.variable_add_to_context(self.list)
+
+    def run_instruction(self):
+        def map_func(e):
+            is_parsed, expr = e
+
+            return expr if is_parsed else parse_expr(expr)
+
+        if ctx_stack.variable_is_declared(self.identifier):
+            self.list.value = list(map(map_func, self.values))
+        else:
+            runtime_error("Variable {} is not declared".format(self.identifier))
+
+
+
 #
 # Sentences
 #
 
 # cases is of the shape [(expr, [instructions]]
 
-class DecisionNode:
+class DecisionNode(Node):
     def __init__(self, cases):
         self.cases = cases
 

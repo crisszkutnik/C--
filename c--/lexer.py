@@ -19,6 +19,7 @@ class CalcLexer(Lexer):
         PLEASE,
         DEFINE,
         DO,
+        LIST,
 
         #Data types
         INT,
@@ -32,7 +33,7 @@ class CalcLexer(Lexer):
     }
 
     other = {
-        '(', ')', ';', '{', '}'
+        '(', ')', ';', '{', '}', '[', ']', ','
     }
 
     literals = operators | other
@@ -60,6 +61,7 @@ class CalcLexer(Lexer):
     ID['while'] = WHILE
     ID['please'] = PLEASE
     ID['do'] = DO
+    ID['list'] = LIST
 
     #Data types
     ID['int'] = INT

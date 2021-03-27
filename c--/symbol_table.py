@@ -1,7 +1,11 @@
 from errors import semantic_error
 
 
-class Variable:
+class VariableType:
+    pass
+
+
+class Variable(VariableType):
     def __init__(self, name, t, value=None):
         self.name = name
         self.type = t
@@ -12,6 +16,12 @@ class Variable:
             self.value = new_value
         else:
             semantic_error("types do not match")
+
+
+class List(VariableType):
+    def __init__(self, name, values=None):
+        self.name = name
+        self.value = values
 
 
 class BlockContext:
