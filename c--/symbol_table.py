@@ -19,9 +19,13 @@ class Variable(VariableType):
 
 
 class List(VariableType):
-    def __init__(self, name, values=None):
+    def __init__(self, name, values=[]):
         self.name = name
         self.value = values
+        self.len = len(values)
+
+    def modify_value(self, idx, new_value):
+        self.value[idx] = new_value
 
 
 class BlockContext:

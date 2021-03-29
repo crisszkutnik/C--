@@ -1,9 +1,9 @@
 from lexer import CalcLexer
 from sly import Parser
 from helpers import tcolours, is_constant, constant_operands, expr_str, is_identifier
-from symbol_table import ctx_stack, BlockContext
+from symbol_table import ctx_stack, BlockContext, List
 from errors import semantic_error
-from nodes import AssignExpressionNode, DeclarationNode, DecisionNode, ListDeclarationNode
+from nodes import AssignExpressionNode, DeclarationNode, DecisionNode, ListDeclarationNode, ListAssignExpressionNode
 
 
 def expression_is_parsed(expr: str):
@@ -28,9 +28,6 @@ def generate_block_context(instructions):
 class CalcParser(Parser):
     tokens = CalcLexer.tokens
     start = 'program'
-    tmp_ctx = []
-
-    # tmp_ctx is an auxiliary context used to parse statements
 
     # Error handler
     def error(self, err):
@@ -61,14 +58,21 @@ class CalcParser(Parser):
     def assign_expression(self, p):
         return False, p[0]
 
-    @_('ID "=" eq_expression')
+    @_('ID arr_access "=" eq_expression')
     def assign_expression(self, p):
-        is_parsed = type(p[2]) is int or type(p[2]) is float or type(p[2]) is bool
+        is_parsed = expression_is_parsed(p[3])
+        var = ctx_stack.search_variable(p[0])
 
-        if not is_parsed:
-            is_parsed = expression_is_parsed(p[2])
+        node = None
+        if type(var) is List:
+            if p[1] is None:
+                semantic_error("List variables can not be assigned")
+            else:
+                node = ListAssignExpressionNode(var, p[1], p[3], expression_is_parsed(p[1]), is_parsed)
+        else:
+            node = AssignExpressionNode(p[0], p[3], is_parsed)
 
-        return True, AssignExpressionNode(p[0], p[2], is_parsed)
+        return True, node
 
     # eq_expression
 
@@ -170,7 +174,10 @@ class CalcParser(Parser):
 
         if var:
             if p[1] is None:
-                return p[0]
+                if type(p[0]) is List:
+                    semantic_error("Lists can not be operated with")
+                else:
+                    return p[0]
             else:
                 return p[0] + "[{}]".format(p[1])
         else:
@@ -360,11 +367,13 @@ if __name__ == "__main__":
     # text = "please int a = 10; a = 5;"
     text = """
             please int b = 5;
+            b = 10;
             please list a = [1, 2, b * 2, 4, 5];
+            a[b-6] = 10000;
             """
 
     parser.parse(lexer.tokenize(text))
 
-    # ctx_stack.run_context()
+    ctx_stack.run_context()
     # print(ctx_stack.variable_get_value("abc"))
-    # print(ctx_stack.variable_get_value("a"))
+    print(ctx_stack.variable_get_value("a"))

@@ -41,6 +41,29 @@ class AssignExpressionNode(Node):
             pass
             # Runtime error. Variable not declared
 
+class ListAssignExpressionNode(Node):
+    def __init__(self, target_list, idx, expr, parsed_idx, parsing_completed):
+        self.list = target_list
+        self.idx = idx
+        self.expr = expr
+        self.parsing_completed = parsing_completed
+        self.parsed_idx = parsed_idx
+
+    def run_instruction(self):
+        idx = self.idx if self.parsed_idx else parse_expr(self.idx)
+
+        if type(idx) is not int:
+            semantic_error("Floats can not be index of arrays")
+            return
+
+        if idx < self.list.len:
+            self.list.modify_value(
+                idx,
+                self.expr if self.parsing_completed else parse_expr(self.expr)
+            )
+        else:
+            semantic_error("Index {} out of range for list {}".format(idx, self.list.name))
+
 
 #
 # Declarations
@@ -72,7 +95,6 @@ class ListDeclarationNode(Node):
     def __init__(self, identifier, values):
         self.identifier = identifier
         self.values = values
-        print(values)
         self.list = List(identifier)
 
     def add_to_context(self):
@@ -88,7 +110,9 @@ class ListDeclarationNode(Node):
             return expr if is_parsed else parse_expr(expr)
 
         if ctx_stack.variable_is_declared(self.identifier):
-            self.list.value = list(map(map_func, self.values))
+            new_list = list(map(map_func, self.values))
+            self.list.value = new_list
+            self.list.len = len(new_list)
         else:
             runtime_error("Variable {} is not declared".format(self.identifier))
 
